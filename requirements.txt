@@ -1,0 +1,7 @@
+flask
+flask-cors
+openai
+httpx
+trafilatura
+requests
+urllib3

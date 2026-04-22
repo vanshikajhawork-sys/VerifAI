@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VerifAI — Because AI gets it wrong too</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F8F8F8; color: #1a1a1a; }
+
+  .navbar { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { font-size: 18px; font-weight: 600; color: #4F46E5; }
+  .tagline { font-size: 12px; color: #888; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+  .hero { text-align: center; margin-bottom: 2.5rem; }
+  .hero h1 { font-size: 28px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
+  .hero p { font-size: 15px; color: #666; line-height: 1.6; max-width: 520px; margin: 0 auto; }
+
+  .card { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+
+  .step-label { font-size: 11px; font-weight: 600; color: #4F46E5; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .card p { font-size: 13px; color: #666; margin-bottom: 1rem; line-height: 1.5; }
+
+  .prompt-box { background: #F3F4F6; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #444; line-height: 1.6; margin-bottom: 1rem; font-family: monospace; }
+
+  textarea { width: 100%; min-height: 160px; font-size: 13px; font-family: monospace; color: #1a1a1a; background: #FAFAFA; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; resize: vertical; line-height: 1.6; outline: none; transition: border-color 0.2s; }
+  textarea:focus { border-color: #4F46E5; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: #4F46E5; color: #fff; width: 100%; justify-content: center; margin-top: 12px; }
+  .btn-primary:hover { background: #4338CA; }
+  .btn-primary:disabled { background: #C7D2FE; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: #666; border: 1px solid #e0e0e0; font-size: 13px; padding: 7px 16px; }
+  .btn-secondary:hover { background: #F3F4F6; }
+
+  .hint { font-size: 12px; color: #999; margin-top: 8px; }
+
+  .loading { text-align: center; padding: 3rem; }
+  .spinner { width: 36px; height: 36px; border: 3px solid #E0E7FF; border-top-color: #4F46E5; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { font-size: 14px; color: #666; }
+  .loading small { font-size: 12px; color: #999; display: block; margin-top: 4px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: #F8F8F8; border-radius: 8px; padding: 0.875rem 1rem; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric-val { font-size: 22px; font-weight: 600; }
+  .good { color: #0F6E56; }
+  .warn { color: #854F0B; }
+  .bad { color: #A32D2D; }
+  .inf { color: #534AB7; }
+  .gray { color: #5F5E5A; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-btn { font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid #e0e0e0; background: transparent; color: #666; cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { background: #EEF2FF; border-color: #C7D2FE; color: #3730A3; font-weight: 500; }
+
+  .results-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .results-table th { padding: 9px 10px; text-align: left; font-weight: 500; font-size: 11px; color: #888; border-bottom: 1px solid #e8e8e8; background: #F8F8F8; }
+  .results-table td { padding: 10px; vertical-align: top; border-bottom: 1px solid #f0f0f0; }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: #FAFAFA; }
+
+  .verdict-pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .v-confirmed { background: #E1F5EE; color: #0F6E56; }
+  .v-partial { background: #FAEEDA; color: #854F0B; }
+  .v-inferred { background: #EEEDFE; color: #534AB7; }
+  .v-not_found { background: #FCEBEB; color: #A32D2D; }
+  .v-inaccessible { background: #F1EFE8; color: #5F5E5A; }
+  .v-insufficient_source { background: #F1EFE8; color: #5F5E5A; }
+
+  .snippet-box { background: #F8F8F8; border-left: 2px solid #d0d0d0; padding: 5px 8px; font-size: 11px; color: #555; line-height: 1.5; font-style: italic; border-radius: 0 4px 4px 0; margin-top: 4px; }
+
+  .conf-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .conf-bar-bg { flex: 1; height: 4px; background: #e8e8e8; border-radius: 99px; overflow: hidden; min-width: 40px; }
+  .conf-bar { height: 100%; border-radius: 99px; }
+  .conf-num { font-size: 11px; font-weight: 500; color: #666; min-width: 30px; }
+  .conf-label-pill { font-size: 10px; padding: 2px 6px; border-radius: 999px; font-weight: 500; }
+  .cl-high { background: #E1F5EE; color: #0F6E56; }
+  .cl-medium { background: #FAEEDA; color: #854F0B; }
+  .cl-low { background: #FCEBEB; color: #A32D2D; }
+
+  .source-link { color: #4F46E5; font-size: 11px; text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+  .source-link:hover { text-decoration: underline; }
+  .source-name { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+
+  .why { font-size: 11px; color: #666; line-height: 1.5; }
+  .checked-at { font-size: 10px; color: #bbb; margin-top: 4px; }
+
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+  .results-title { font-size: 16px; font-weight: 600; }
+  .results-meta { font-size: 12px; color: #888; }
+
+  .error-box { background: #FCEBEB; border: 1px solid #F09595; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #A32D2D; margin-top: 1rem; }
+
+  .hidden { display: none; }
+
+  @media (max-width: 600px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .results-table th:nth-child(4), .results-table td:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">VerifAI</div>
+  <div class="tagline">Because AI gets it wrong too</div>
+</nav>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>Verify your AI research instantly</h1>
+    <p>Paste your ChatGPT or Claude research table below. VerifAI checks every source and tells you what's confirmed, inferred, or wrong.</p>
+  </div>
+
+  <!-- Input Screen -->
+  <div id="screen-input">
+    <div class="card">
+      <div class="step-label">Step 1 — Get your research</div>
+      <h2>Use this prompt in ChatGPT or Claude</h2>
+      <p>Copy and paste this into your AI tool to get research in the right format:</p>
+      <div class="prompt-box">Give me [X] factual claims about [your topic]. For each claim, provide a real publicly accessible source URL. Format as a markdown table with columns: Claim | Source URL | Source Name. Avoid PDFs and paywalled sources.</div>
+    </div>
+
+    <div class="card">
+      <div class="step-label">Step 2 — Paste and verify</div>
+      <h2>Paste your research table here</h2>
+      <p>Include the full markdown table exactly as your AI tool returned it.</p>
+      <textarea id="research-input" placeholder="| Claim | Source URL | Source Name |
+|-------|-----------|-------------|
+| The Eiffel Tower is located in Paris | https://simple.wikipedia.org/wiki/Eiffel_Tower | Simple Wikipedia |
+| Python was created by Guido van Rossum | https://simple.wikipedia.org/wiki/Python_(programming_language) | Simple Wikipedia |"></textarea>
+      <div class="hint">VerifAI will fetch each source, extract the content, and verify every claim using AI — usually takes 30-90 seconds.</div>
+      <button class="btn btn-primary" id="verify-btn" onclick="startVerification()">Verify claims</button>
+      <div id="error-msg" class="error-box hidden"></div>
+    </div>
+  </div>
+
+  <!-- Loading Screen -->
+  <div id="screen-loading" class="hidden">
+    <div class="card">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p id="loading-text">Fetching sources and verifying claims...</p>
+        <small>This usually takes 30–90 seconds depending on the number of claims</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="screen-results" class="hidden">
+
+    <div class="results-header">
+      <div>
+        <div class="results-title">Verification report</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="downloadCSV()">Download CSV</button>
+        <button class="btn btn-secondary" onclick="resetTool()">New verification</button>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summary-grid"></div>
+
+    <div class="filter-row" id="filter-row"></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th style="width:22%">Claim</th>
+            <th style="width:14%">Source</th>
+            <th style="width:11%">Verdict</th>
+            <th style="width:25%">Snippet</th>
+            <th style="width:20%">Reasoning</th>
+            <th style="width:8%">Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const API_URL = "http://localhost:5000";
+let allResults = [];
+let currentFilter = "all";
+
+const verdictConfig = {
+  confirmed: { label: "Confirmed", cls: "v-confirmed" },
+  partial: { label: "Partially correct", cls: "v-partial" },
+  inferred: { label: "Inferred", cls: "v-inferred" },
+  not_found: { label: "Not found", cls: "v-not_found" },
+  inaccessible: { label: "Inaccessible", cls: "v-inaccessible" },
+  insufficient_source: { label: "Insufficient source", cls: "v-insufficient_source" },
+};
+
+const confColor = { High: "#1D9E75", Medium: "#EF9F27", Low: "#E24B4A" };
+const confClass = { High: "cl-high", Medium: "cl-medium", Low: "cl-low" };
+
+function show(id) {
+  ["screen-input", "screen-loading", "screen-results"].forEach(s => {
+    document.getElementById(s).classList.add("hidden");
+  });
+  document.getElementById(id).classList.remove("hidden");
+}
+
+async function startVerification() {
+  const text = document.getElementById("research-input").value.trim();
+  if (!text) {
+    document.getElementById("research-input").focus();
+    return;
+  }
+
+  const errorMsg = document.getElementById("error-msg");
+  errorMsg.classList.add("hidden");
+
+  const btn = document.getElementById("verify-btn");
+  btn.disabled = true;
+
+  show("screen-loading");
+
+  const loadingMessages = [
+    "Parsing your research table...",
+    "Fetching source URLs...",
+    "Extracting page content...",
+    "Verifying claims with AI...",
+    "Building your report...",
+  ];
+  let msgIdx = 0;
+  const loadingInterval = setInterval(() => {
+    msgIdx = (msgIdx + 1) % loadingMessages.length;
+    document.getElementById("loading-text").textContent = loadingMessages[msgIdx];
+  }, 4000);
+
+  try {
+    const response = await fetch(`${API_URL}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    clearInterval(loadingInterval);
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Server error");
+    }
+
+    const data = await response.json();
+    allResults = data.results;
+    currentFilter = "all";
+
+    buildSummary(data.summary, data.total);
+    buildFilters(data.summary);
+    renderTable();
+
+    document.getElementById("results-meta").textContent =
+      `${data.total} claims verified · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+
+    show("screen-results");
+
+  } catch (err) {
+    clearInterval(loadingInterval);
+    show("screen-input");
+    errorMsg.textContent = `Error: ${err.message}. Make sure the VerifAI server is running (python server.py).`;
+    errorMsg.classList.remove("hidden");
+  }
+
+  btn.disabled = false;
+}
+
+function buildSummary(summary, total) {
+  const grid = document.getElementById("summary-grid");
+  const items = [
+    { label: "Confirmed", val: summary.confirmed, cls: "good" },
+    { label: "Partially correct", val: summary.partial, cls: "warn" },
+    { label: "Inferred", val: summary.inferred, cls: "inf" },
+    { label: "Not found", val: summary.not_found, cls: "bad" },
+    { label: "Inaccessible", val: summary.inaccessible, cls: "gray" },
+    { label: "Insufficient source", val: summary.insufficient_source, cls: "gray" },
+  ];
+  grid.innerHTML = items.map(i => `
+    <div class="metric">
+      <div class="metric-label">${i.label}</div>
+      <div class="metric-val ${i.cls}">${i.val}</div>
+    </div>
+  `).join("");
+}
+
+function buildFilters(summary) {
+  const row = document.getElementById("filter-row");
+  const filters = [
+    { key: "all", label: "All claims" },
+    { key: "confirmed", label: "Confirmed" },
+    { key: "partial", label: "Partially correct" },
+    { key: "inferred", label: "Inferred" },
+    { key: "not_found", label: "Not found" },
+    { key: "inaccessible", label: "Inaccessible" },
+    { key: "insufficient_source", label: "Insufficient" },
+  ];
+  row.innerHTML = filters.map(f => `
+    <button class="filter-btn ${f.key === 'all' ? 'active' : ''}"
+      onclick="setFilter('${f.key}', this)">${f.label}</button>
+  `).join("");
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTable();
+}
+
+function renderTable() {
+  const filtered = currentFilter === "all"
+    ? allResults
+    : allResults.filter(r => r.verdict === currentFilter);
+
+  const body = document.getElementById("results-body");
+  if (filtered.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:#888;font-size:13px;">No claims match this filter</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = filtered.map(r => {
+    const vc = verdictConfig[r.verdict] || { label: r.verdict, cls: "v-inaccessible" };
+    const cc = confColor[r.confidence_label] || "#888";
+    const cl = confClass[r.confidence_label] || "cl-low";
+    return `
+      <tr>
+        <td style="font-size:12px;line-height:1.5;color:#1a1a1a">${r.claim}</td>
+        <td>
+          <span class="source-name">${r.source_name}</span>
+          <a class="source-link" href="${r.source_url}" target="_blank" title="${r.source_url}">${r.source_url.replace("https://","").replace("http://","").substring(0,30)}...</a>
+        </td>
+        <td><span class="verdict-pill ${vc.cls}">${vc.label}</span></td>
+        <td><div class="snippet-box">${r.snippet || "—"}</div></td>
+        <td>
+          <span class="why">${r.reasoning || "—"}</span>
+          <div class="checked-at">${r.checked_at}</div>
+        </td>
+        <td>
+          <div class="conf-wrap">
+            <div class="conf-bar-bg"><div class="conf-bar" style="width:${r.confidence}%;background:${cc}"></div></div>
+            <span class="conf-num">${r.confidence}%</span>
+          </div>
+          <span class="conf-label-pill ${cl}">${r.confidence_label}</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function downloadCSV() {
+  const headers = ["claim","source_name","source_url","checked_at","verdict","confidence","confidence_label","snippet","reasoning"];
+  const rows = allResults.map(r => headers.map(h => `"${(r[h]||"").toString().replace(/"/g,'""')}"`).join(","));
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `verifai_report_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function resetTool() {
+  document.getElementById("research-input").value = "";
+  allResults = [];
+  show("screen-input");
+}
+</script>
+
+</body>
+</html>
