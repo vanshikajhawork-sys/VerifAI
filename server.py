@@ -9,7 +9,7 @@ Usage:
 Then open index.html in your browser.
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from openai import OpenAI
 import httpx
@@ -224,8 +224,9 @@ def verify_claim(claim, source_url, source_name, page_content, client):
 
 # --- API endpoint ------------------------------------------------------------
 
-@app.route("/verify", methods=["POST"])
-def verify():
+@app.route("/")
+def index():
+    return send_file("index.html")
     data = request.get_json()
     if not data or "text" not in data:
         return jsonify({"error": "No text provided"}), 400
