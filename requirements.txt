@@ -5,5 +5,3 @@ httpx
 trafilatura
 requests
 urllib3
-gunicorn
-gevent
