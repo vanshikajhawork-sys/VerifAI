@@ -227,6 +227,9 @@ def verify_claim(claim, source_url, source_name, page_content, client):
 @app.route("/")
 def index():
     return send_file("index.html")
+
+@app.route("/verify", methods=["POST"])
+def verify():
     data = request.get_json()
     if not data or "text" not in data:
         return jsonify({"error": "No text provided"}), 400
