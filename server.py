@@ -19,6 +19,7 @@ import json
 import time
 import re
 import urllib3
+from concurrent.futures import ThreadPoolExecutor
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from datetime import datetime
 
@@ -228,6 +229,7 @@ def verify_claim(claim, source_url, source_name, page_content, client):
 def index():
     return send_file("index.html")
 
+
 @app.route("/verify", methods=["POST"])
 def verify():
     data = request.get_json()
@@ -246,9 +248,7 @@ def verify():
         http_client=httpx.Client(verify=False),
     )
 
-    results = []
-
-    for item in claims:
+    def process_single_claim(item):
         claim = item["claim"]
         url = item["source_url"]
         name = item["source_name"]
@@ -256,7 +256,7 @@ def verify():
         page_content, fetch_status = fetch_page_content(url)
 
         if fetch_status == "inaccessible":
-            results.append({
+            return {
                 **item,
                 "verdict": "inaccessible",
                 "snippet": "Source could not be accessed — may be paywalled or blocking scrapers.",
@@ -265,11 +265,10 @@ def verify():
                 "confidence_label": "Low",
                 "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "fetch_status": "inaccessible",
-            })
-            continue
+            }
 
         if fetch_status == "empty":
-            results.append({
+            return {
                 **item,
                 "verdict": "not_found",
                 "snippet": "Page was fetched but no readable text could be extracted.",
@@ -278,13 +277,12 @@ def verify():
                 "confidence_label": "Low",
                 "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "fetch_status": "empty",
-            })
-            continue
+            }
 
         char_count = len(page_content)
 
         if char_count < THRESHOLD_INSUFFICIENT:
-            results.append({
+            return {
                 **item,
                 "verdict": "insufficient_source",
                 "snippet": f"Only {char_count} characters extracted — page is likely a dashboard or JavaScript-heavy site.",
@@ -293,19 +291,19 @@ def verify():
                 "confidence_label": "Low",
                 "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "fetch_status": "insufficient",
-            })
-            continue
+            }
 
         verdict_data = verify_claim(claim, url, name, page_content, client)
 
-        results.append({
+        return {
             **item,
             "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "fetch_status": "ok" if char_count >= THRESHOLD_LOW_CONTENT else "low_content",
             **verdict_data,
-        })
+        }
 
-        time.sleep(0.3)
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(process_single_claim, claims))
 
     return jsonify({
         "total": len(results),
